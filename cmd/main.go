@@ -41,6 +41,7 @@ func main() {
 	http.HandleFunc("/register", handlers.RegisterHandler(storeInstance))
 	http.HandleFunc("/login", handlers.LoginHandler(storeInstance))
 	http.HandleFunc("/users/", handlers.PublicKeyHandler(storeInstance))
+	http.HandleFunc("/messages/", handlers.MessageHistoryHandler(storeInstance))
 
 	log.Printf("Starting server on port %s...", cfg.Port)
 	err = http.ListenAndServe(":"+cfg.Port, nil)

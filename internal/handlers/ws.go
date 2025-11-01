@@ -182,6 +182,7 @@ func (c *Client) readPump(hub *Hub) {
 					return id
 				}(),
 				c.Username,
+				chatMsg.To,
 				chatMsg.Ciphertext,
 			)
 		}

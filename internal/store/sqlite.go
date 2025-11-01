@@ -47,12 +47,40 @@ func (s *Store) migrate() error {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		user_id INTEGER NOT NULL,
 		username TEXT NOT NULL,
+		recipient TEXT NOT NULL,
 		content TEXT NOT NULL,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		FOREIGN KEY(user_id) REFERENCES users(id)
 	);`
 	_, err = s.db.Exec(messageTable)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Automated migration: add recipient column if missing
+	rows, err := s.db.Query("PRAGMA table_info(messages);")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	columns := map[string]bool{}
+	for rows.Next() {
+		var cid int
+		var name, ctype string
+		var notnull, pk int
+		var dfltValue interface{}
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dfltValue, &pk); err != nil {
+			return err
+		}
+		columns[name] = true
+	}
+	if !columns["recipient"] {
+		_, err := s.db.Exec("ALTER TABLE messages ADD COLUMN recipient TEXT NOT NULL DEFAULT ''")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // CreateUser inserts a new user into the database.
@@ -99,9 +127,9 @@ func (s *Store) Close() error {
 }
 
 // CreateMessage inserts a new chat message into the database.
-func (s *Store) CreateMessage(userID int64, username, content string) error {
-	stmt := `INSERT INTO messages (user_id, username, content) VALUES (?, ?, ?)`
-	_, err := s.db.Exec(stmt, userID, username, content)
+func (s *Store) CreateMessage(userID int64, username, recipient, content string) error {
+	stmt := `INSERT INTO messages (user_id, username, recipient, content) VALUES (?, ?, ?, ?)`
+	_, err := s.db.Exec(stmt, userID, username, recipient, content)
 	return err
 }
 
@@ -135,6 +163,31 @@ func (s *Store) GetRecentMessages(limit int) ([]struct {
 			CreatedAt string
 		}
 		if err := rows.Scan(&m.ID, &m.UserID, &m.Username, &m.Content, &m.CreatedAt); err != nil {
+			return nil, err
+		}
+		messages = append(messages, m)
+	}
+	return messages, nil
+}
+
+// GetMessagesBetween fetches encrypted messages exchanged between two users, ordered by created_at ascending.
+func (s *Store) GetMessagesBetween(userA, userB string) ([]models.Message, error) {
+	stmt := `
+		SELECT id, user_id, username, recipient, content, created_at
+		FROM messages
+		WHERE (username = ? AND recipient = ?)
+		   OR (username = ? AND recipient = ?)
+		ORDER BY created_at ASC
+	`
+	rows, err := s.db.Query(stmt, userA, userB, userB, userA)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var messages []models.Message
+	for rows.Next() {
+		var m models.Message
+		if err := rows.Scan(&m.ID, &m.UserID, &m.Username, &m.Recipient, &m.Content, &m.CreatedAt); err != nil {
 			return nil, err
 		}
 		messages = append(messages, m)
