@@ -5,7 +5,6 @@
 <p align="center">
   <a href="https://golang.org"><img src="https://img.shields.io/badge/go-1.21-blue?logo=go" /></a>
   <a href="https://github.com/edpsouza/chatterbox/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" /></a>
-  <a href="https://github.com/edpsouza/chatterbox/actions"><img src="https://github.com/edpsouza/chatterbox/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
   <img src="https://img.shields.io/badge/security-E2EE-important?logo=lock" />
   <img src="https://img.shields.io/badge/backend-Go-blue?logo=go" />
   <img src="https://img.shields.io/badge/client-Go-blue?logo=go" />
@@ -29,6 +28,7 @@ The backend never sees plaintext—only encrypted data.
 - Secure registration and authentication
 - Recipient-only message routing
 - Message persistence (ciphertext only)
+- Seamless chat history loading (previous messages appear when you rejoin a conversation)
 - Easy local multi-user testing
 
 ---
@@ -63,11 +63,28 @@ go run ./cmd/main.go
 
 ---
 
+## Usage Example: Seamless Chat History
+
+When you start a chat with a user, previous messages are automatically loaded and displayed after authentication:
+
+```
+Authenticated. Start chatting! Type 'exit' to leave.
+---- Chat History ----
+[2024-06-10T12:34:56Z] alice -> bob: Hey Bob, are you there?
+[2024-06-10T12:35:10Z] bob -> alice: Hi Alice! Yes, I'm here.
+----------------------
+>
+```
+
+You can pick up the conversation right where you left off!
+
+---
+
 ## Roadmap
 
 **Near-Term**
 - [ ] Group chat support
-- [ ] Message history retrieval
+- [x] Message history retrieval
 - [ ] User presence/status
 - [ ] Improved CLI error handling
 - [ ] Automated tests & CI
