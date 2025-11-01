@@ -43,11 +43,9 @@ func HashPassword(password string) (string, error) {
 func VerifyPassword(hash, password string) (bool, error) {
 	parts := splitHash(hash)
 	if parts == nil {
-		println("VerifyPassword: splitHash returned nil for hash=", hash)
 		return false, errors.New("invalid hash format")
 	}
 	if len(parts) != 2 {
-		println("VerifyPassword: splitHash returned", len(parts), "parts for hash=", hash, "parts=", parts)
 		return false, errors.New("invalid hash format")
 	}
 	salt, err := base64.RawStdEncoding.DecodeString(parts[0])
@@ -68,8 +66,6 @@ func splitHash(hash string) []string {
 	hash = strings.TrimSpace(hash)
 	parts := strings.Split(hash, "$")
 	if len(parts) != 6 {
-		// Debug log for hash parsing
-		println("splitHash: hash=", hash, "parts=", len(parts), parts)
 		return nil
 	}
 	// parts[4] = salt, parts[5] = hash

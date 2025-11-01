@@ -5,6 +5,7 @@
 <p align="center">
   <a href="https://golang.org"><img src="https://img.shields.io/badge/go-1.21-blue?logo=go" /></a>
   <a href="https://github.com/edpsouza/chatterbox/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" /></a>
+  <a href="https://github.com/edpsouza/chatterbox/actions"><img src="https://github.com/edpsouza/chatterbox/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI Status" /></a>
   <img src="https://img.shields.io/badge/security-E2EE-important?logo=lock" />
   <img src="https://img.shields.io/badge/backend-Go-blue?logo=go" />
   <img src="https://img.shields.io/badge/client-Go-blue?logo=go" />
@@ -77,6 +78,36 @@ Authenticated. Start chatting! Type 'exit' to leave.
 ```
 
 You can pick up the conversation right where you left off!
+
+---
+
+## Troubleshooting
+
+- **JWT secret not set:**  
+  If you see "JWT secret not set" errors, set the `JWT_SECRET` environment variable before running the backend.
+
+- **Database not found:**  
+  If you get "database not found," ensure you have run the backend at least once to create `chatterbox.db`.
+
+- **Port conflicts:**  
+  If the server fails to start, make sure port `8080` is available or change it in your `.env` file.
+
+- **Client cannot connect:**  
+  Ensure the backend is running and accessible at the configured address.
+
+---
+
+## Testing & CI
+
+Automated tests are run on every push and pull request via GitHub Actions (see CI badge above).
+To run tests locally:
+
+```sh
+go test ./...
+```
+
+- Unit and integration tests cover password hashing, registration/login, message persistence, and history.
+- CI ensures code quality and reliability for every commit.
 
 ---
 
