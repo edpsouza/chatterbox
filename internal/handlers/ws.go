@@ -103,6 +103,12 @@ func (c *Client) readPump(hub *Hub) {
 	defer func() {
 		hub.Unregister <- c
 		c.Conn.Close()
+		// Set user status to offline and update last_seen
+		storeInstance, err := getStoreInstance()
+		if err == nil && c.Username != "" {
+			_ = storeInstance.SetUserStatus(c.Username, "offline")
+			_ = storeInstance.SetUserLastSeenNow(c.Username)
+		}
 	}()
 
 	authChecked := false
@@ -148,6 +154,12 @@ func (c *Client) readPump(hub *Hub) {
 			c.UserID = strconv.FormatInt(user.ID, 10)
 			c.Username = user.Username
 			c.Authenticated = true
+
+			// Set user status to online
+			if storeInstance != nil {
+				_ = storeInstance.SetUserStatus(c.Username, "online")
+			}
+
 			c.Conn.WriteMessage(websocket.TextMessage, []byte("Authenticated"))
 			authChecked = true
 			continue

@@ -83,16 +83,16 @@ You can pick up the conversation right where you left off!
 
 ## Troubleshooting
 
-- **JWT secret not set:**  
+- **JWT secret not set:**
   If you see "JWT secret not set" errors, set the `JWT_SECRET` environment variable before running the backend.
 
-- **Database not found:**  
+- **Database not found:**
   If you get "database not found," ensure you have run the backend at least once to create `chatterbox.db`.
 
-- **Port conflicts:**  
+- **Port conflicts:**
   If the server fails to start, make sure port `8080` is available or change it in your `.env` file.
 
-- **Client cannot connect:**  
+- **Client cannot connect:**
   Ensure the backend is running and accessible at the configured address.
 
 ---

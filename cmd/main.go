@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -21,6 +22,7 @@ func main() {
 	cfg := config.Load()
 
 	// Initialize SQLite store
+	fmt.Println("DEBUG: Using database file:", cfg.Database)
 	storeInstance, err := store.NewStore(cfg.Database)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
@@ -40,7 +42,7 @@ func main() {
 	})
 	http.HandleFunc("/register", handlers.RegisterHandler(storeInstance))
 	http.HandleFunc("/login", handlers.LoginHandler(storeInstance))
-	http.HandleFunc("/users/", handlers.PublicKeyHandler(storeInstance))
+	http.HandleFunc("/users/", handlers.UserHandler(storeInstance))
 	http.HandleFunc("/messages/", handlers.MessageHistoryHandler(storeInstance))
 
 	log.Printf("Starting server on port %s...", cfg.Port)

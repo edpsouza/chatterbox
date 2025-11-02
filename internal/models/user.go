@@ -15,6 +15,8 @@ type User struct {
 	Username  string `json:"username"`
 	Password  string `json:"-"`          // Stored as Argon2id hash
 	PublicKey string `json:"public_key"` // ECC public key (base64 or hex encoded)
+	Status    string `json:"status"`
+	LastSeen  string `json:"last_seen"`
 }
 
 // Argon2id parameters

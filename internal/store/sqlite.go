@@ -31,16 +31,50 @@ func NewStore(dbPath string) (*Store, error) {
 
 // migrate creates necessary tables if they don't exist.
 func (s *Store) migrate() error {
+	var err error
+	var rows *sql.Rows
 	userTable := `
 	CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		username TEXT UNIQUE NOT NULL,
 		password TEXT NOT NULL,
-		public_key TEXT
+		public_key TEXT,
+		status TEXT DEFAULT 'offline',
+		last_seen DATETIME
 	);`
-	_, err := s.db.Exec(userTable)
+	_, err = s.db.Exec(userTable)
 	if err != nil {
 		return err
+	}
+
+	// Automated migration: add status and last_seen columns if missing
+	rows, err = s.db.Query("PRAGMA table_info(users);")
+	if err != nil {
+		return err
+	}
+	columns := map[string]bool{}
+	defer rows.Close()
+	for rows.Next() {
+		var cid int
+		var name, ctype string
+		var notnull, pk int
+		var dfltValue interface{}
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dfltValue, &pk); err != nil {
+			return err
+		}
+		columns[name] = true
+	}
+	if !columns["status"] {
+		_, err := s.db.Exec("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'offline'")
+		if err != nil {
+			return err
+		}
+	}
+	if !columns["last_seen"] {
+		_, err := s.db.Exec("ALTER TABLE users ADD COLUMN last_seen DATETIME")
+		if err != nil {
+			return err
+		}
 	}
 	messageTable := `
 	CREATE TABLE IF NOT EXISTS messages (
@@ -58,24 +92,24 @@ func (s *Store) migrate() error {
 	}
 
 	// Automated migration: add recipient column if missing
-	rows, err := s.db.Query("PRAGMA table_info(messages);")
+	rows, err = s.db.Query("PRAGMA table_info(messages);")
 	if err != nil {
 		return err
 	}
+	columns = map[string]bool{}
 	defer rows.Close()
-	columns := map[string]bool{}
 	for rows.Next() {
 		var cid int
 		var name, ctype string
 		var notnull, pk int
-		var dfltValue interface{}
+		var dfltValue any
 		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dfltValue, &pk); err != nil {
 			return err
 		}
 		columns[name] = true
 	}
 	if !columns["recipient"] {
-		_, err := s.db.Exec("ALTER TABLE messages ADD COLUMN recipient TEXT NOT NULL DEFAULT ''")
+		_, err = s.db.Exec("ALTER TABLE messages ADD COLUMN recipient TEXT NOT NULL DEFAULT ''")
 		if err != nil {
 			return err
 		}
@@ -102,10 +136,18 @@ func (s *Store) CreateUser(user *models.User) error {
 
 // GetUserByUsername fetches a user by username.
 func (s *Store) GetUserByUsername(username string) (*models.User, error) {
-	stmt := `SELECT id, username, password, public_key FROM users WHERE username = ?`
+	stmt := `SELECT id, username, password, public_key, status, last_seen FROM users WHERE LOWER(username) = LOWER(?)`
+
 	row := s.db.QueryRow(stmt, username)
 	var user models.User
-	err := row.Scan(&user.ID, &user.Username, &user.Password, &user.PublicKey)
+	var lastSeen sql.NullString
+	err := row.Scan(&user.ID, &user.Username, &user.Password, &user.PublicKey, &user.Status, &lastSeen)
+	if lastSeen.Valid {
+		user.LastSeen = lastSeen.String
+	} else {
+		user.LastSeen = ""
+	}
+
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -193,4 +235,25 @@ func (s *Store) GetMessagesBetween(userA, userB string) ([]models.Message, error
 		messages = append(messages, m)
 	}
 	return messages, nil
+}
+
+// SetUserStatus updates the user's status (e.g., "online", "offline").
+func (s *Store) SetUserStatus(username, status string) error {
+	stmt := `UPDATE users SET status = ? WHERE username = ?`
+	_, err := s.db.Exec(stmt, status, username)
+	return err
+}
+
+// SetUserLastSeen updates the user's last_seen timestamp.
+func (s *Store) SetUserLastSeen(username, timestamp string) error {
+	stmt := `UPDATE users SET last_seen = ? WHERE username = ?`
+	_, err := s.db.Exec(stmt, timestamp, username)
+	return err
+}
+
+// SetUserLastSeenNow updates the user's last_seen timestamp to the current time.
+func (s *Store) SetUserLastSeenNow(username string) error {
+	stmt := `UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE username = ?`
+	_, err := s.db.Exec(stmt, username)
+	return err
 }
